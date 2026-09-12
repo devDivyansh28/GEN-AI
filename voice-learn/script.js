@@ -1,4 +1,6 @@
-const API_KEY = "YOUR_API_KEY_HERE"; // Replace with your actual
+const API_KEY = "YOUR_API_KEY_HERE"; // Replace with your actual API key
+const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY_HERE"; // Replace with
+  
 
 
 async function llm(userText='') {
@@ -21,6 +23,34 @@ async function llm(userText='') {
     .find((content) => content.type === "output_text");
 
   return textOutput?.text ?? "";
+}
+
+async function speak(text = ''){
+  const response = await fetch(
+    "https://api.openai.com/v1/audio/speech",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini-tts",
+        voice: "coral",
+        input: text,
+        instructions:
+          "Speak in a friendly and engaging tone, as if you are having a conversation with the user.",
+      }),
+    },
+  );
+
+  const audioBlob = await response.blob();
+  const audioUrl = URL.createObjectURL(audioBlob);
+  const audio = new Audio(audioUrl);
+  await audio.play();
+  audio.onended = () => {
+    URL.revokeObjectURL(audioUrl);
+  }
 }
 
 async function main() {
@@ -47,6 +77,7 @@ async function main() {
     console.log("User", transcript);
     const ai = await llm(transcript);
     console.log("AI : " , ai)
+    await speak(ai);
   };
 
   speechRecognition.start();
