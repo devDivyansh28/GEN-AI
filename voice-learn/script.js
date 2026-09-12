@@ -1,7 +1,10 @@
 const API_KEY = "YOUR_API_KEY_HERE"; // Replace with your actual API key
 const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY_HERE"; // Replace with
-  
 
+const state = {
+  currentlyPlaying : false,
+  currentAudioObj : null,
+}
 
 async function llm(userText='') {
   const response = await fetch("https://ai-gateway.vercel.sh/v1/responses", {
@@ -26,6 +29,7 @@ async function llm(userText='') {
 }
 
 async function speak(text = ''){
+  state.currentlyPlaying = true;
   const response = await fetch(
     "https://api.openai.com/v1/audio/speech",
     {
@@ -47,8 +51,13 @@ async function speak(text = ''){
   const audioBlob = await response.blob();
   const audioUrl = URL.createObjectURL(audioBlob);
   const audio = new Audio(audioUrl);
+  state.currentAudioObj ={
+    audioUrl,
+    audio,
+  };
   await audio.play();
   audio.onended = () => {
+    state.currentAudioObj = null;
     URL.revokeObjectURL(audioUrl);
   }
 }
@@ -75,6 +84,10 @@ async function main() {
   speechRecognition.onresult = async function (event) {
     const transcript = event.results[event.results.length - 1][0].transcript;
     console.log("User", transcript);
+    if(state.currentAudioObj){
+      state.currentAudioObj.audio.pause();
+      URL.revokeObjectURL(state.currentAudioObj.audioUrl)
+    }
     const ai = await llm(transcript);
     console.log("AI : " , ai)
     await speak(ai);
